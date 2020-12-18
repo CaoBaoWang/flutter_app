@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -10,36 +11,13 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    final wordPair = new WordPair.random();
 
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-        // This makes the visual density adapt to the platform that you run
-        // the app on. For desktop platforms, the controls will be smaller and
-        // closer together (more dense) than on mobile platforms.
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+      theme: new ThemeData(
+        primaryColor: Colors.white
       ),
-      // home: MyHomePage(title: 'Flutter Demo Home Page'),
-       home: new Scaffold(
-         appBar: new AppBar(
-           title: new Text('welcome to flutter'),
-         ),
-         body: new Center(
-           // child: new Text(wordPair.asPascalCase),
-           child: new RandomWords()
-         ),
-       ),
+      home: new RandomWords()
     );
   }
 }
@@ -47,22 +25,104 @@ class MyApp extends StatelessWidget {
 class RandomWords extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-    return new  RandomWordsState();
-  }
+    return new _RandomWordsState ();
 
+  }
 }
 
-class RandomWordsState extends State<RandomWords> {
+class _RandomWordsState  extends State<RandomWords> {
+  final _suggestions = <WordPair>[];
+  final _saved = new Set<WordPair>();
+  final _biggerFont = const TextStyle(fontSize: 18.0);
+  void _pushSaved() {
+    Navigator.of(context).push(
+      new MaterialPageRoute(
+         builder: (context) {
+           final tiles = _saved.map(
+                 (pair) {
+               return new ListTile(
+                 title: new Text(
+                   pair.asPascalCase,
+                   style: _biggerFont,
+                 ),
+               );
+             },
+           );
+           final divided = ListTile
+               .divideTiles(
+             context: context,
+             tiles: tiles,
+           ).toList();
+
+           return new Scaffold(
+             appBar: new AppBar(
+               title: new Text('Saved Suggestions'),
+             ),
+             body: new ListView(children: divided),
+           );
+         }
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
-    final wordPair = new WordPair.random();
-    return new Text(wordPair.asPascalCase);
+    return new Scaffold(
+      appBar: new AppBar(
+        title: new Text('startup name'),
+        actions: <Widget>[
+          new IconButton(icon: new Icon(Icons.list), onPressed: _pushSaved),
+        ],
+      ),
+      body: _buildSuggestions(),
+    );
+  }
+
+  Widget _buildSuggestions() {
+    return ListView.builder(
+        padding: EdgeInsets.all(16.0),
+        itemBuilder: (context, i) {
+          // 在每一列之前，添加一个1像素高的分隔线widget
+          if (i.isOdd) return new Divider();
+
+          // 语法 "i ~/ 2" 表示i除以2，但返回值是整形（向下取整），比如i为：1, 2, 3, 4, 5
+          // 时，结果为0, 1, 1, 2, 2， 这可以计算出ListView中减去分隔线后的实际单词对数量
+          final index = i ~/ 2;
+          // 如果是建议列表中最后一个单词对
+          if (index >= _suggestions.length) {
+            // ...接着再生成10个单词对，然后添加到建议列表
+            _suggestions.addAll(generateWordPairs().take(10));
+          }
+          return _buildRow(_suggestions[index]);
+        });
+  }
+
+
+  Widget _buildRow(WordPair pair) {
+    final alreadySaved = _saved.contains(pair);
+    return ListTile(
+      title: Text(
+        pair.asPascalCase,
+        style: _biggerFont,
+      ),
+      trailing: new Icon(
+        alreadySaved ? Icons.favorite : Icons.favorite_border,
+        color: alreadySaved ? Colors.red : null,
+      ),
+      onTap: () {
+        setState(() {
+          if (alreadySaved) {
+            _saved.remove(pair);
+          } else {
+            _saved.add(pair);
+          }
+        });
+      },
+    );
   }
 
 }
-
-
 
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
